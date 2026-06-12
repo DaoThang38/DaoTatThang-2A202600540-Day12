@@ -13,6 +13,11 @@ from fastapi.responses import JSONResponse
 import uvicorn
 from pythonjsonlogger import jsonlogger
 
+from .agent import KnowledgeBaseAgent
+from .store import EmbeddingStore
+from .embeddings import _mock_embed
+from .models import Document
+
 from .config import settings
 from .auth import verify_api_key
 from .rate_limiter import check_rate_limit
@@ -35,16 +40,25 @@ START_TIME = time.time()
 _is_ready = False
 _in_flight_requests = 0
 
-def mock_llm_ask(question: str) -> str:
+rag_agent: KnowledgeBaseAgent = None
+
+def mock_llm_ask(prompt: str) -> str:
     """Mock LLM interaction"""
     time.sleep(0.5)
-    return f"This is a mocked response to: '{question}'"
+    preview = prompt[:200].replace("\n", " ")
+    return f"This is an Agent generated response based on context: '{preview}...'"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _is_ready
+    global _is_ready, rag_agent
     logger.info({"event": "startup", "message": "Agent starting up..."})
     time.sleep(0.1) # Simulate load
+    
+    # Initialize RAG agent
+    store = EmbeddingStore(collection_name="production_store", embedding_fn=_mock_embed)
+    store.add_documents([Document(id="doc1", content="This is a test document for the production AI agent knowledge base.", metadata={"source": "test"})])
+    rag_agent = KnowledgeBaseAgent(store=store, llm_fn=mock_llm_ask)
+    
     _is_ready = True
     logger.info({"event": "ready", "message": "Agent is ready!"})
     
@@ -111,7 +125,7 @@ def ask(
     if redis_client:
         history = redis_client.lrange(history_key, 0, -1)
     
-    answer = mock_llm_ask(question)
+    answer = rag_agent.answer(question)
     
     if redis_client:
         redis_client.rpush(history_key, f"Q: {question}")
