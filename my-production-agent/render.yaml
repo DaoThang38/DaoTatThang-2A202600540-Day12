@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: my-production-agent
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        value: 8000
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: redis-cache
+          property: connectionString
+      - key: AGENT_API_KEY
+        generateValue: true
+
+  - type: redis
+    name: redis-cache
+    plan: free

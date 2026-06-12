@@ -1,0 +1,43 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          if [ -f my-production-agent/requirements.txt ]; then pip install -r my-production-agent/requirements.txt; fi
+
+      - name: Lint with flake8
+        run: |
+          flake8 my-production-agent/app --count --select=E9,F63,F7,F82 --show-source --statistics
+          
+  deploy:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to Cloud
+        run: echo "Mock deployment to Railway/Render triggered!"
+        # To deploy to render automatically, uncomment below:
+        # env:
+        #   deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        # run: |
+        #   curl "$deploy_url"
