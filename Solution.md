@@ -33,7 +33,7 @@
 ## Part 3: Cloud Deployment
 
 ### Exercise 3.1: Deployment
-- URL: https://my-production-agent.onrender.com (hoặc url tuỳ chọn của Railway)
+- URL: https://daotatthang-2a202600540-day12-production.up.railway.app
 - Screenshot: Xem thư mục `screenshots/`
 
 ## Part 4: API Security
